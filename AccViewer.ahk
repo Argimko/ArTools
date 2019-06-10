@@ -19,7 +19,7 @@ Menu Tray, Icon, shell32.dll, 172
     global WM_KILLFOCUS := 0x08
     global WM_LBUTTONDOWN := 0x201
     global WM_LBUTTONUP := 0x202
-    global Border := new Outline, Stored:={}, Acc := 0, ChildId := 0, TVobj, Win:={}, Lbutton_Pressed := False, CH := False
+    global OutlineBorder := new Outline(), Stored:={}, Acc := 0, ChildId := 0, TVobj, Win:={}, Lbutton_Pressed := False, CH := False
 }
 {
     DetectHiddenWindows, On
@@ -194,7 +194,7 @@ return
     Sleep, -1
     GuiControl, , WinCtrl, % (DllCall("GetParent", Uint,Acc_WindowFromObject(Acc))? "Control":"Window") " Info"
     if Not DllCall("IsWindowVisible", "Ptr",Win.Acc) {
-        Border.Hide()
+        OutlineBorder.Hide()
         SB_SetText("Path: " GetAccPath(Acc).path, 2)
     }
     else {
@@ -224,7 +224,7 @@ return
     Sleep, -1
     GuiControl, , WinCtrl, % (DllCall("GetParent", Uint,Acc_WindowFromObject(Acc))? "Control":"Window") " Info"
     if Not DllCall("IsWindowVisible", "Ptr",Win.Acc) {
-        Border.Hide()
+        OutlineBorder.Hide()
         SB_SetText("Path: " GetAccPath(Acc).path, 2)
     }
     else {
@@ -311,7 +311,7 @@ BuildTreeView() {
     GuiControl, +Redraw, SysTreeView321
 }
 AccClose() {
-    Border.Hide()
+    OutlineBorder.Hide()
     Gui Acc: Hide
     TV_Delete()
     Gui Main: Default
@@ -337,7 +337,7 @@ GetAccInfo() {
     global Whwnd
     static ShowButtonEnabled
     MouseGetPos, , , Whwnd
-    if (Whwnd!=Win.Main && Whwnd!=Win.Acc && Whwnd!=Border.top && Whwnd!=Border.right && Whwnd!=Border.bottom && Whwnd!=Border.left) {
+    if (Whwnd!=Win.Main && Whwnd!=Win.Acc && Whwnd!=OutlineBorder.hwnd) {
         {
             GuiControlGet, SectionLabel, , WinCtrl
             if (SectionLabel != "Window/Control Info")
@@ -430,11 +430,14 @@ UpdateAccInfo(Acc, ChildId, Obj_Path) {
         SB_SetText(ChildId? " Child Id: " ChildId:" Object")
         SB_SetText(DllCall("IsWindowVisible", "Ptr",Win.Acc)? "Path: " Obj_Path : "`tAutofocus: Win+Z", 2)
     }
-    Border.Transparent(true)
-    Border.show(Location.x, Location.y, Location.x+Location.w, Location.y+Location.h)
-    Border.setabove(Whwnd)
-    Border.Transparent(false)
-    Stored.Location := Location.pos
+
+    If (Location) {
+        OutlineBorder.Transparent(True)
+        OutlineBorder.Show(Location.x, Location.y, Location.w, Location.h)
+        OutlineBorder.SetAbove(Whwnd)
+        OutlineBorder.Transparent(False)
+        Stored.Location := Location.pos
+    }
 }
 GetClassNN(Chwnd, Whwnd) {
     global _GetClassNN := {}
@@ -527,6 +530,7 @@ WM_MOUSEMOVE() {
     if (ctrl = "msctls_statusbar321")
         DllCall("SetCursor","ptr",hCurs.ptr)
 }
+
 class Cursor {
     __New(id) {
         this.ptr := DllCall("LoadCursor","UInt",0,"Int",id,"UInt")
@@ -535,70 +539,48 @@ class Cursor {
         DllCall("DestroyCursor","Uint",this.ptr)
     }
 }
-class Outline {
-    __New(color="red") {
-        Gui, +HWNDdefault
-        Loop, 4 {
-            Gui, New, -Caption +ToolWindow HWNDhwnd
-            Gui, Color, %color%
-            this[A_Index] := hwnd
-        }
-        this.visible := false
-        this.color := color
-        this.top := this[1]
-        this.right := this[2]
-        this.bottom := this[3]
-        this.left := this[4]
-        Gui, %default%: Default
+
+; https://www.autohotkey.com/boards/viewtopic.php?t=57919
+class Outline
+{
+    __New(bc := "red") {
+        static WS_EX_CLICKTHROUGH := 0x20
+
+        Gui outline:New, -Caption +ToolWindow +E%WS_EX_CLICKTHROUGH% +HWNDhwnd
+        Gui outline:Color, %bc%
+        this.hwnd := hwnd
     }
-    Show(x1, y1, x2, y2, sides="TRBL") {
-        Gui, +HWNDdefault
-        if InStr( sides, "T" )
-            Gui, % this[1] ":Show", % "NA X" x1-2 " Y" y1-2 " W" x2-x1+4 " H" 2
-        Else, Gui, % this[1] ":Hide"
-        if InStr( sides, "R" )
-            Gui, % this[2] ":Show", % "NA X" x2 " Y" y1 " W" 2 " H" y2-y1
-        Else, Gui, % this[2] ":Hide"
-        if InStr( sides, "B" )
-            Gui, % this[3] ":Show", % "NA X" x1-2 " Y" y2 " W" x2-x1+4 " H" 2
-        Else, Gui, % this[3] ":Hide"
-        if InStr( sides, "L" )
-            Gui, % this[4] ":Show", % "NA X" x1-2 " Y" y1 " W" 2 " H" y2-y1
-        Else, Gui, % this[3] ":Hide"
-        this.visible := true
-        Gui, %default%: Default
+    
+    ; bw - Border width (and height) in pixels
+    Show(x, y, w, h, bw := 2) {
+        w2 := w - bw
+        h2 := h - bw
+
+        WinSet Region, 0-0 %w%-0 %w%-%h% 0-%h% 0-0   %bw%-%bw% %w2%-%bw% %w2%-%h2% %bw%-%h2% %bw%-%bw%, % "ahk_id " this.hwnd
+
+        Gui outline:Show, NA X%x% Y%y% W%w% H%h%
     }
+
     Hide() {
-        Gui, +HWNDdefault
-        Loop, 4
-            Gui, % this[A_Index] ": Hide"
-        this.visible := false
-        Gui, %default%: Default
+        Gui outline:Hide
     }
-    SetAbove(hwnd) {
-        ABOVE := DllCall("GetWindow", "uint", hwnd, "uint", 3)
-        Loop, 4
-            DllCall(    "SetWindowPos", "uint", this[A_Index], "uint", ABOVE
-                    ,   "int", 0, "int", 0, "int", 0, "int", 0
-                    ,   "uint", 0x1|0x2|0x10    )
-    }
+
     Transparent(param) {
-        Loop, 4
-            WinSet, Transparent, % param=1? 0:255, % "ahk_id " this[A_Index]
-        this.visible := !param
+        WinSet Transparent, % param ? 0 : 220, % "ahk_id " this.hwnd
     }
-    Color(color) {
-        Gui, +HWNDdefault
-        Loop, 4
-            Gui, % this[A_Index] ": Color" , %color%
-        this.color := color
-        Gui, %default%: Default
+
+    SetAbove(hwnd) {
+        aboveHwnd := DllCall("GetWindow", "uint", hwnd, "uint", 3)
+        DllCall(    "SetWindowPos", "uint", this.hwnd, "uint", aboveHwnd
+                ,   "int", 0, "int", 0, "int", 0, "int", 0
+                ,   "uint", 0x1|0x2|0x10    )
     }
+
     Destroy() {
-        Loop, 4
-            Gui, % this[A_Index] ": Destroy"
+        Gui outline:Destroy
     }
 }
+
 CColor(Hwnd, Background="", Foreground="") {
     return CColor_(Background, Foreground, "", Hwnd+0)
 }
