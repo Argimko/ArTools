@@ -12,25 +12,51 @@ FileEncoding UTF-8-RAW
 Main()
 
 Main() {
-    config := "<Configuration>`n<MappedFolders>`n"
-    For n, item In A_Args
+    If (!FileExist(A_WinDir "\System32\WindowsSandbox.exe")) {
+        MsgBox 0x40030,, Please`, install Windows Sandbox first
+        Return
+    }
+
+    command := ""
+    config := "<Configuration>`n`n<MappedFolders>"
+
+    For n, param In A_Args
     {
-        hostFolder := SubStr(item, 4)
-        readOnlyState := SubStr(item, 1, 2) = "rw" ? "false" : "true"
+        item := StrSplit(param, ":",, 2)
+
+        If (item[1] = "-ro") {
+            hostFolder := item[2]
+            readOnlyState := "true"
+        }
+        Else If (item[1] = "-rw") {
+            hostFolder := item[2]
+            readOnlyState := "false"
+        }
+        Else If (item[1] = "-cmd") {
+            command := item[2]
+            Continue
+        }
+        Else
+            Continue
 
         mappedFolder =
         ( LTrim
 
-            <MappedFolder>
-            <HostFolder>%hostFolder%</HostFolder>
-            <ReadOnly>%readOnlyState%</ReadOnly>
-            </MappedFolder>
+            `t<MappedFolder>
+            `t`t<HostFolder>%hostFolder%</HostFolder>
+            `t`t<ReadOnly>%readOnlyState%</ReadOnly>
+            `t</MappedFolder>
 
         )
 
         config .= mappedFolder
     }
-    config .= "`n</MappedFolders>`n</Configuration>"
+    config .= "</MappedFolders>"
+
+    If (command != "")
+        config .= "`n`n<LogonCommand>`n`t<Command>"""" """ command """</Command>`n</LogonCommand>"
+
+    config .= "`n`n</Configuration>"
 
     configPath := A_MyDocuments "\Windows Sandbox Config.wsb"
     FileDelete % configPath
