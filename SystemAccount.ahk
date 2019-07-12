@@ -16,9 +16,9 @@ If (A_Args.Length() > 0)
 
 Main() {
     A_Args[1] := Common.ExpandEnvironmentStrings(A_Args[1])
-    SplitPath % A_Args[1],,, ext,, root
+    SplitPath % A_Args[1],,, ext
     
-    computer := SubStr(root, 1, 2) == "\\" ? root : ""
+    computer := SubStr(A_Args[1], 1, 2) == "\\" ? "\\" A_ComputerName : ""
     
     If (ext != "exe" && ext != "") {
         RegRead className, HKCR\.%ext%
