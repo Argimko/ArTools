@@ -14,6 +14,7 @@ Main()
 Main() {
     If (!FileExist(A_WinDir "\System32\WindowsSandbox.exe")) {
         MsgBox 0x40030,, Please`, install Windows Sandbox first
+        Run OptionalFeatures.exe
         Return
     }
 
