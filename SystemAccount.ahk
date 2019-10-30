@@ -15,11 +15,7 @@ If (A_Args.Length() > 0)
     Main()
 
 Main() {
-    A_Args[1] := Common.ExpandEnvironmentStrings(A_Args[1])
     SplitPath % A_Args[1],,, ext
-    
-    computer := SubStr(A_Args[1], 1, 2) == "\\" ? "\\" A_ComputerName : ""
-    
     If (ext != "exe" && ext != "") {
         RegRead className, HKCR\.%ext%
         RegRead command, HKCR\%className%\shell\open\command
@@ -34,5 +30,8 @@ Main() {
         commandLine .= param " "
 
     psExec := A_Is64bitOS ? "PsExec64.exe" : "PsExec.exe"
+    computer := SubStr(A_Args[1], 1, 2) == "\\" ? "\\" A_ComputerName : ""
+    commandLine := Common.ExpandEnvironmentStrings(commandLine)
+
     Run *RunAs PsExec\%psExec% %computer% -s -i -d -accepteula %commandLine%,, Hide UseErrorLevel
 }
