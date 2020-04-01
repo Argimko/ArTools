@@ -46,11 +46,11 @@ Menu Tray, Icon, shell32.dll, 172
         Gui, Add, GroupBox, x2 y32 w275 h130 vWinCtrl, Window/Control Info
         Gui, Font
         Gui, Add, Text, x7 y50 w42 h20 Right, WinTitle:
-        Gui, Add, Edit, x51 y47 w180 h20 vWinTitle,
-        Gui, Add, Button, x+2 y46 w40 h22 gSetTitle, Set
+        Gui, Add, Edit, x51 yp-3 w180 h20 vWinTitle,
+        Gui, Add, Button, x+2 yp-1 w40 h22 gSetTitle, Set
         Gui, Add, Text, x7 y72 w42 h20 Right, Text:
-        Gui, Add, Edit, x51 y69 w180 h20 vText,
-        Gui, Add, Button, x+2 y68 w40 h22 gSetText, Set
+        Gui, Add, Edit, x51 yp-3 w180 h20 vText,
+        Gui, Add, Button, x+2 yp-1 w40 h22 gSetText, Set
         Gui, Add, Text, x7 y94 w42 h20 vClassText Right, ClassN:
         Gui, Add, Edit, x51 y91 w221 h20 ReadOnly vClass,
         Gui, Add, Text, x7 y116 w42 h20 Right, Hwnd:
@@ -67,9 +67,11 @@ Menu Tray, Icon, shell32.dll, 172
         Gui, Add, GroupBox, x2 y165 w275 h130 vAcc, Accessible Info
         Gui, Font
         Gui, Add, Text, x7 y183 w42 h20 Right, Name:
-        Gui, Add, Edit, x51 y180 w221 h20 ReadOnly vAccName,
+        Gui, Add, Edit, x51 yp-3 w180 h20 vAccName,
+        Gui, Add, Button, x+2 yp-1 w40 h22 vAccSetName, Set
         Gui, Add, Text, x7 y205 w42 h20 Right, Value:
-        Gui, Add, Edit, x51 y202 w221 h20 ReadOnly vAccValue,
+        Gui, Add, Edit, x51 yp-3 w180 h20 vAccValue,
+        Gui, Add, Button, x+2 yp-1 w40 h22 vAccSetValue, Set
         Gui, Add, Text, x7 y227 w42 h20 Right, Role:
         Gui, Add, Edit, x51 y224 w85 h20 ReadOnly vAccRole,
         Gui, Add, Edit, x135 y224 w137 h20 ReadOnly vAccRoleValue,
@@ -78,7 +80,7 @@ Menu Tray, Icon, shell32.dll, 172
         Gui, Add, Edit, x135 y246 w137 h20 ReadOnly vAccStateValue,
         Gui, Add, Text, x7 y271 w42 h20 Right, Action:
         Gui, Add, Edit, x51 y268 w117 h20 ReadOnly vAccAction,
-        Gui, Add, Button, x170 y267 w103 h22 vAccDoAction, Do Default Action
+        Gui, Add, Button, x170 y267 w103 h22 vAccDoDefaultAction, Do Default Action
         {
             Gui, Add, Text, x7 y293 w55 h20 Right vAccLocationText, Location:
             Gui, Add, Edit, x65 y290 w207 h20 ReadOnly vAccLocation,
@@ -268,9 +270,7 @@ ShowStructure() {
     }
     WinGetPos, x, y, w, , % "ahk_id " Win.Main
     WinGetPos, , , AccW, AccH, % "ahk_id " Win.Acc
-    WinMove, % "ahk_id " Win.Acc,
-        , (x+w+AccW > A_ScreenWidth? x-AccW-10:x+w+10)
-        , % y+5, %AccW%, %AccH%
+    WinMove, % "ahk_id " Win.Acc,, (x+w+AccW > A_ScreenWidth? x-AccW-10:x+w+10), % y+5, %AccW%, %AccH%
     WinShow, % "ahk_id " Win.Acc
     if ComObjType(Acc, "Name") = "IAccessible"
         BuildTreeView()
@@ -357,7 +357,15 @@ SetTitle() {
     GuiControlGet, Title,, WinTitle
     WinSetTitle, ahk_id %Hwnd%, , % Title
 }
-DoAction(Acc, ChildId) {
+SetName(Acc, ChildId) {
+    GuiControlGet name,, AccName
+    Acc.accName[ChildId] := name
+}
+SetValue(Acc, ChildId) {
+    GuiControlGet value,, AccValue
+    Acc.accValue[ChildId] := value
+}
+DoDefaultAction(Acc, ChildId) {
     Acc.accDoDefaultAction(ChildId)
 }
 UpdateInfo(Acc, ChildId, Obj_Path := "") {
@@ -411,14 +419,22 @@ UpdateAccInfo(Acc, ChildId, Obj_Path) {
     Location := Acc_Location(Acc, ChildId)
     {
         GuiControl, , AccName, % Acc.accName(ChildId)
+        handler := Func("SetName").Bind(Acc, ChildId)
+        GuiControl, +g, AccSetName, % handler
+
         GuiControl, , AccValue, % Acc.accValue(ChildId)
+        handler := Func("SetValue").Bind(Acc, ChildId)
+        GuiControl, +g, AccSetValue, % handler
+
         GuiControl, , AccRole, % roleText := Acc_Role(Acc, ChildId)
         GuiControl, , AccRoleValue, % roleText == "" ? "" : "ROLE_" Format("{:U}", StrReplace(roleText, " "))
         GuiControl, , AccState, % Acc_State(Acc, ChildId)
         GuiControl, , AccStateValue, % Acc_StateValue(Acc, ChildId)
+
         GuiControl, , AccAction, % Acc.accDefaultAction(ChildId)
-        doActionHandler := Func("DoAction").Bind(Acc, ChildId)
-        GuiControl, +g, AccDoAction, % doActionHandler
+        handler := Func("DoDefaultAction").Bind(Acc, ChildId)
+        GuiControl, +g, AccDoDefaultAction, % handler
+
         GuiControl, , AccChildCount, % ChildId? "N/A":Acc.accChildCount
         GuiControl, , AccSelection, % ChildId? "N/A":Acc.accSelection
         GuiControl, , AccFocus, % ChildId? "N/A":Acc.accFocus
