@@ -5,7 +5,7 @@
 
 SetWinDelay 10
 SetBatchLines -1
-SetWorkingDir %A_ScriptDir%\..\..\..
+SetWorkingDir %A_ScriptDir%\..\..\..\Sublime Merge
 FileEncoding UTF-8-RAW
 
 #Include <ClipboardStorage>
@@ -17,9 +17,13 @@ Main()
 Main() {
     ; case-insensitive
     If (A_Args[1] = "--clone-to") {
+        path := A_Args[2]
+        If (StrLen(path) > 3)
+            path := RTrim(path, "\")
+
         If (WinExist("ahk_exe sublime_merge.exe")) {
             ClipboardStorage.Store()
-            Clipboard := A_Args[2]
+            Clipboard := path
             
             ControlSend ahk_parent, ^+n
 
@@ -33,19 +37,18 @@ Main() {
             ClipboardStorage.Restore()
         }
         Else {
-            If (file := FileOpen("Sublime Merge\Data\Local\Session.sublime_session", "rw")) {
+            If (file := FileOpen("Data\Local\Session.sublime_session", "rw")) {
                 bomLength := file.Position
 
                 json := file.Read()
-                json := SimpleJSON.SetRootItem("project_dir", A_Args[2], json)
-                json := SimpleJSON.RemoveRootItem("windows", json)
+                json := SimpleJSON.SetRootItem("project_dir", path, json)
 
                 file.Length := bomLength
                 file.Write(json)
                 file.Close()
             }
 
-            Run Sublime Merge\sublime_merge.exe
+            Run sublime_merge.exe --new-window
         }
     }
 }
