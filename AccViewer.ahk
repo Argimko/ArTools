@@ -559,7 +559,7 @@ class Cursor {
 ; https://www.autohotkey.com/boards/viewtopic.php?t=57919
 class Outline
 {
-    __New(bc := "red") {
+    __New(bc := "fuchsia") {
         static WS_EX_CLICKTHROUGH := 0x20
 
         Gui outline:New, -Caption +ToolWindow +E%WS_EX_CLICKTHROUGH% +HWNDhwnd
