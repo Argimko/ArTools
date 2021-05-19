@@ -21,16 +21,21 @@ Main() {
     command := ""
     config := "<Configuration>`n`n<MappedFolders>"
 
+    mappedFoldersCount := 0
+    For n, param In A_Args
+    {
+        If (SubStr(param, 1, 3) = "-ro" || SubStr(param, 1, 3) = "-rw")
+            mappedFoldersCount++
+    }
+
     For n, param In A_Args
     {
         item := StrSplit(param, ":",, 2)
 
         If (item[1] = "-ro") {
-            hostFolder := item[2]
             readOnlyState := "true"
         }
         Else If (item[1] = "-rw") {
-            hostFolder := item[2]
             readOnlyState := "false"
         }
         Else If (item[1] = "-cmd") {
@@ -40,11 +45,19 @@ Main() {
         Else
             Continue
 
+        hostFolder := RTrim(item[2], "\")
+
+        If (mappedFoldersCount == 1 && hostFolder = A_Desktop)
+            sandboxFolder := "C:\Users\WDAGUtilityAccount\Desktop"
+        Else
+            sandboxFolder := ""
+
         mappedFolder =
         ( LTrim
 
             `t<MappedFolder>
             `t`t<HostFolder>%hostFolder%</HostFolder>
+            `t`t<SandboxFolder>%sandboxFolder%</SandboxFolder>
             `t`t<ReadOnly>%readOnlyState%</ReadOnly>
             `t</MappedFolder>
 
@@ -55,7 +68,7 @@ Main() {
     config .= "</MappedFolders>"
 
     If (command != "")
-        config .= "`n`n<LogonCommand>`n`t<Command>"""" """ command """</Command>`n</LogonCommand>"
+        config .= "`n`n<LogonCommand>`n`t<Command>" command "</Command>`n</LogonCommand>"
 
     config .= "`n`n</Configuration>"
 
