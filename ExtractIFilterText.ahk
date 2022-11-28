@@ -9,7 +9,7 @@
 ; History:
 ;   [2018-11-06] https://github.com/qwerty12/AutoHotkeyScripts/blob/master/IFilterPDF/ifilter.ahk
 ;   [2022-10-30] https://github.com/Ixiko/Addendum-fuer-Albis-on-Windows/blob/master/include/Addendum_PdfHelper.ahk
-;   [2022-11-28]
+;   [2022-11-28] https://github.com/Argimko/ArTools/blob/master/ExtractIFilterText.ahk
 ; 
 ; Usage examples:
 ;   ExtractIFilterText(srcPath, dstPath)
