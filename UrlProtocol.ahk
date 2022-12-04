@@ -25,26 +25,37 @@ Main() {
 
     Switch protocol {
         Case "st":
-            SplitPath path, folder
-            If (WinExist("(" folder ") ahk_group SublimeText")) {
-                WinActivate
+            If (attr := FileExist(path)) {
+                If (InStr(attr, "D")) {
+                    SplitPath path, folder
+                    If (WinExist("(" folder ") ahk_group SublimeText")) {
+                        WinActivate
+                    }
+                    Else {
+                        SetWorkingDir % path
+
+                        files := ""
+                        Loop Files, %path%\*
+                        {
+                            If (SubStr(A_LoopFileName, 1, 1) != ".")
+                                files .= " """ A_LoopFileName """"
+                        }
+
+                        If (WinExist("ahk_group SublimeText")) {
+                            Run "%SUBLIME_TEXT_PATH%" .
+                            If (files != "")
+                                Run "%SUBL_PATH%" --background%files%,, Hide                    
+                        }
+                        Else
+                            Run "%SUBLIME_TEXT_PATH%" .%files%
+                    }                                    
+                }
+                Else {
+                    Run "%SUBLIME_TEXT_PATH%" "%path%"
+                }
             }
             Else {
-                SetWorkingDir % path
-
-                files := ""
-                Loop Files, %path%\*
-                {
-                    If (SubStr(A_LoopFileName, 1, 1) != ".")
-                        files .= " """ A_LoopFileName """"
-                }
-
-                If (WinExist("ahk_group SublimeText")) {
-                    Run "%SUBLIME_TEXT_PATH%" .
-                    Run "%SUBL_PATH%" --background%files%,, Hide                    
-                }
-                Else
-                    Run "%SUBLIME_TEXT_PATH%" .%files%
+                MsgBox 0x40030,, File or folder doesn't exists:`n`n%path%
             }
     }
 }
