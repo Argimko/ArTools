@@ -9,7 +9,7 @@
 ; History:
 ;   [2018-11-06] https://github.com/qwerty12/AutoHotkeyScripts/blob/master/IFilterPDF/ifilter.ahk
 ;   [2022-10-30] https://github.com/Ixiko/Addendum-fuer-Albis-on-Windows/blob/master/include/Addendum_PdfHelper.ahk
-;   [2022-11-28] https://github.com/Argimko/ArTools/blob/master/ExtractIFilterText.ahk
+;   [2022-12-04] https://github.com/Argimko/ArTools/blob/master/ExtractIFilterText.ahk
 ; 
 ; Usage examples:
 ;   ExtractIFilterText(srcPath, dstPath)
@@ -153,24 +153,24 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
         NumPut(&ext,  FILTERED_DATA_SOURCES, 0,         "Ptr")
         VarSetCapacity(filterClsid, 16, 0)
 
-        filterRegistration := ComObjCreate("{9E175B8D-F52A-11D8-B9A5-505054503030}", "{C7310722-AC80-11D1-8DF3-00C04FB6EF4F}")
+        filterReg := ComObjCreate("{9E175B8D-F52A-11D8-B9A5-505054503030}", "{C7310722-AC80-11D1-8DF3-00C04FB6EF4F}")
 
         ; ILoadFilter::LoadIFilter
-        If (DllCall(NumGet(NumGet(filterRegistration+0)+3*A_PtrSize), Ptr,filterRegistration, Ptr,0, Ptr,&FILTERED_DATA_SOURCES, Ptr,0, Int,False, Ptr,&filterClsid, Ptr,0, PtrP,0, PtrP,iFilter:=0))
-            Throw A_ThisFunc ": cannot load IFilter for:`n`n""" srcPath """"
+        If (ErrorLevel := DllCall(NumGet(NumGet(filterReg+0)+3*A_PtrSize), Ptr,filterReg, Ptr,0, Ptr,&FILTERED_DATA_SOURCES, Ptr,0, Int,False, Ptr,&filterClsid, Ptr,0, PtrP,0, PtrP,iFilter:=0, UInt))
+            Throw Format("0x{:X} - {}: {}", ErrorLevel, A_ThisFunc, "Load IFilter failed for:`n`n""" srcPath """")
 
         If (showFilterClsid)
             MsgBox,, IFilter CLSID, % GuidToString(filterClsid)
 
-        ObjRelease(filterRegistration)
+        ObjRelease(filterReg)
 
-        If (DllCall("shlwapi\SHCreateStreamOnFile", Str, srcPath, UInt,STGM_READ, PtrP,iStream:=0))
-            Throw A_ThisFunc ": cannot open input file:`n`n""" srcPath """"
+        If (ErrorLevel := DllCall("shlwapi\SHCreateStreamOnFile", Str, srcPath, UInt,STGM_READ, PtrP,iStream:=0, UInt))
+            Throw Format("0x{:X} - {}: {}", ErrorLevel, A_ThisFunc, "Open input file failed for:`n`n""" srcPath """")
 
         ; IPersistStream::Load
         persistStream := ComObjQuery(iFilter, "{00000109-0000-0000-C000-000000000046}")
-        If (DllCall(NumGet(NumGet(persistStream+0)+5*A_PtrSize), Ptr,persistStream, Ptr,iStream))
-            Throw A_ThisFunc ": cannot load file stream"
+        If (ErrorLevel := DllCall(NumGet(NumGet(persistStream+0)+5*A_PtrSize), Ptr,persistStream, Ptr,iStream, UInt))
+            Throw Format("0x{:X} - {}: {}", ErrorLevel, A_ThisFunc, "Load file stream failed for:`n`n""" srcPath """")
 
         ObjRelease(iStream)
 
@@ -179,8 +179,8 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
                | IFILTER_INIT_APPLY_INDEX_ATTRIBUTES    ; allow to process Office 2003 file formats like .doc, .xls with offFilt.dll v2008
 
         ; IFilter::Init
-        If (DllCall(NumGet(NumGet(iFilter+0)+3*A_PtrSize), Ptr,iFilter, UInt,flags, Int64, 0, Ptr,0, Int64P,0))
-            Throw A_ThisFunc ": cannot init IFilter for:`n`n""" srcPath """"
+        If (ErrorLevel := DllCall(NumGet(NumGet(iFilter+0)+3*A_PtrSize), Ptr,iFilter, UInt,flags, Int64, 0, Ptr,0, Int64P,0, UInt))
+            Throw Format("0x{:X} - {}: {}", ErrorLevel, A_ThisFunc, "Init IFilter failed for:`n`n""" srcPath """")
         
         prevBreakType := -1
         bufferSize := 32*1024
@@ -190,13 +190,13 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
         If (dstPath != "") {
             dstFile := FileOpen(dstPath, "w", "UTF-8")
             If (!IsObject(dstFile))
-                Throw A_ThisFunc ": cannot write text to destination file (error: " A_LastError  ")"
+                Throw Format("0x{:X} - {}: {}", A_LastError, A_ThisFunc, "Write text to destination file failed:`n`n""" dstFile """")
         }
         Else
             VarSetCapacity(dstText, bufferSize * 8)
 
         ; IFilter::GetChunk
-        While (DllCall(NumGet(NumGet(iFilter+0)+4*A_PtrSize), Ptr,iFilter, Ptr,&STAT_CHUNK) & 0xFFFFFFFF != FILTER_E_END_OF_CHUNKS) {
+        While (DllCall(NumGet(NumGet(iFilter+0)+4*A_PtrSize), Ptr,iFilter, Ptr,&STAT_CHUNK, UInt) != FILTER_E_END_OF_CHUNKS) {
             If (NumGet(STAT_CHUNK, 8, "UInt") & CHUNK_TEXT) {
 
                 breakType := NumGet(STAT_CHUNK, 4, "UInt")
@@ -210,7 +210,7 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
 
                 Loop {
                     ; IFilter::GetText
-                    result := DllCall(NumGet(NumGet(iFilter+0)+5*A_PtrSize), Ptr,iFilter, Int64P,length:=bufferSize, Ptr,&buf) & 0xFFFFFFFF
+                    result := DllCall(NumGet(NumGet(iFilter+0)+5*A_PtrSize), Ptr,iFilter, Int64P,length:=bufferSize, Ptr,&buf, UInt)
                     If (result == FILTER_E_NO_MORE_TEXT)
                         Break
 
