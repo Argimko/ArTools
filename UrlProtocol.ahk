@@ -21,7 +21,13 @@ Main()
 Main() {
     parts := StrSplit(A_Args[1], ":", "/", 2)
     protocol := parts[1]
-    path := Common.PathCreateFromUrl("file:///" RegExReplace(parts[2], "^(%20)+"))
+    path := Common.PathCreateFromUrl("file:///" RegExReplace(parts[2], "^(%20|\s)+"))
+
+    If (SubStr(path, 1, 14) = "\Google Drive\") {   ; case-insensetive
+        SplitPath A_Desktop,, parentPath
+        If (FileExist(absPath := parentPath path))
+            path := absPath
+    }
 
     Switch protocol {
         Case "st":
