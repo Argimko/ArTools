@@ -23,15 +23,18 @@ Main() {
     protocol := parts[1]
     path := Common.PathCreateFromUrl("file:///" RegExReplace(parts[2], "^(%20|\s)+"))
 
+    attr := False
     If (SubStr(path, 1, 14) = "\Google Drive\") {   ; case-insensetive
         SplitPath A_Desktop,, parentPath
-        If (FileExist(absPath := parentPath path))
+        If (attr := FileExist(absPath := parentPath path))
             path := absPath
+        Else
+            Return ShowNotExistsError(SubStr(path, 2))
     }
 
     Switch protocol {
         Case "st":
-            If (attr := FileExist(path)) {
+            If (attr || attr := FileExist(path)) {
                 If (InStr(attr, "D")) {
                     SplitPath path, folder
                     If (WinExist("(" folder ") ahk_group SublimeText")) {
@@ -60,8 +63,12 @@ Main() {
                     Run "%SUBLIME_TEXT_PATH%" "%path%"
                 }
             }
-            Else {
-                MsgBox 0x40030,, File or folder doesn't exists:`n`n%path%
-            }
+            Else
+                ShowNotExistsError(path)
     }
+}
+
+
+ShowNotExistsError(path) {
+    MsgBox 0x40030,, File or folder doesn't exists:`n`n%path%
 }
