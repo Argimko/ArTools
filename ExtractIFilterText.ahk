@@ -32,7 +32,7 @@
 
 #Warn
 #NoEnv
-#NoTrayIcon
+; #NoTrayIcon
 #SingleInstance Off
 SetBatchLines -1
 
@@ -94,6 +94,7 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
     static IFILTER_INIT_DISABLE_EMBEDDED        := 2048
     static IFILTER_INIT_EMIT_FORMATTING         := 4096
 
+    static S_OK                                 := 0
     static FILTER_S_LAST_TEXT                   := 0x41709
     static FILTER_E_END_OF_CHUNKS               := 0x80041700
     static FILTER_E_NO_MORE_TEXT                := 0x80041701
@@ -201,7 +202,8 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
             VarSetCapacity(dstText, bufferSize * 8)
 
         ; IFilter::GetChunk
-        While (DllCall(NumGet(NumGet(iFilter+0)+4*A_PtrSize), Ptr,iFilter, Ptr,&STAT_CHUNK, UInt) != FILTER_E_END_OF_CHUNKS) {
+        While (DllCall(NumGet(NumGet(iFilter+0)+4*A_PtrSize), Ptr,iFilter, Ptr,&STAT_CHUNK, UInt) == S_OK) {
+
             If (NumGet(STAT_CHUNK, 8, "UInt") & CHUNK_TEXT) {
 
                 breakType := NumGet(STAT_CHUNK, 4, "UInt")
