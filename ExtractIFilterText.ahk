@@ -97,6 +97,7 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
     static FILTER_S_LAST_TEXT                   := 0x41709
     static FILTER_E_END_OF_CHUNKS               := 0x80041700
     static FILTER_E_NO_MORE_TEXT                := 0x80041701
+    static FILTER_E_PASSWORD                    := 0x8004170B
 
     static WS_DISABLED                          := 0x8000000
 
@@ -179,8 +180,12 @@ ExtractIFilterText(srcPath, dstPath := "", extForce := "", listFile := False, sh
                | IFILTER_INIT_APPLY_INDEX_ATTRIBUTES    ; allow to process Office 2003 file formats like .doc, .xls with offFilt.dll v2008
 
         ; IFilter::Init
-        If (ErrorLevel := DllCall(NumGet(NumGet(iFilter+0)+3*A_PtrSize), Ptr,iFilter, UInt,flags, Int64, 0, Ptr,0, Int64P,0, UInt))
+        If (ErrorLevel := DllCall(NumGet(NumGet(iFilter+0)+3*A_PtrSize), Ptr,iFilter, UInt,flags, Int64, 0, Ptr,0, Int64P,0, UInt)) {
+            If (ErrorLevel == FILTER_E_PASSWORD)
+                Return ErrorLevel
+            
             Throw Format("0x{:X} - {}: {}", ErrorLevel, A_ThisFunc, "Init IFilter failed for:`n`n""" srcPath """")
+        }
         
         prevBreakType := -1
         bufferSize := 32*1024
